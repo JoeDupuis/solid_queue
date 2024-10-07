@@ -15,7 +15,9 @@ class RecurringTasksTest < ActiveSupport::TestCase
     terminate_process(@pid) if process_exists?(@pid)
 
     SolidQueue::Process.destroy_all
-    SolidQueue::Job.destroy_all
+    SolidQueue::Job
+      .with_execution
+      .destroy_all
     SolidQueue::RecurringTask.delete_all
     JobResult.delete_all
   end

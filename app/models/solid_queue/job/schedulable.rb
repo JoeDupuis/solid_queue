@@ -6,12 +6,16 @@ module SolidQueue
       extend ActiveSupport::Concern
 
       included do
-        has_one :scheduled_execution, strict_loading: false
+        has_one :scheduled_execution
 
         scope :scheduled, -> { where(finished_at: nil) }
       end
 
       class_methods do
+        def execution_associations
+          super.to_a.append(:scheduled_execution)
+        end
+
         def schedule_all(jobs)
           schedule_all_at_once(jobs)
           successfully_scheduled(jobs)

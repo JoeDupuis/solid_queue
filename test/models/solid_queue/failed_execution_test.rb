@@ -28,7 +28,7 @@ class SolidQueue::FailedExecutionTest < ActiveSupport::TestCase
 
     assert_difference -> { SolidQueue::FailedExecution.count }, -1 do
       assert_difference -> { SolidQueue::ReadyExecution.count }, +1 do
-        SolidQueue::FailedExecution.last.retry
+        SolidQueue::FailedExecution.includes(:job).last.retry
       end
     end
   end

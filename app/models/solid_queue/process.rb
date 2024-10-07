@@ -3,8 +3,8 @@
 class SolidQueue::Process < SolidQueue::Record
   include Executor, Prunable
 
-  belongs_to :supervisor, class_name: "SolidQueue::Process", optional: true, inverse_of: :supervisees, strict_loading: false
-  has_many :supervisees, class_name: "SolidQueue::Process", inverse_of: :supervisor, foreign_key: :supervisor_id, strict_loading: false
+  belongs_to :supervisor, class_name: "SolidQueue::Process", optional: true, inverse_of: :supervisees
+  has_many :supervisees, class_name: "SolidQueue::Process", inverse_of: :supervisor, foreign_key: :supervisor_id
 
   store :metadata, coder: JSON
 
@@ -32,7 +32,7 @@ class SolidQueue::Process < SolidQueue::Record
       destroy!
 
       unless supervised? || pruned
-        supervisees.each(&:deregister)
+        SolidQueue::Process.where(supervisor_id: id).each(&:deregister)
       end
     rescue Exception => error
       payload[:error] = error

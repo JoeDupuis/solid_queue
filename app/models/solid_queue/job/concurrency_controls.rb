@@ -6,7 +6,7 @@ module SolidQueue
       extend ActiveSupport::Concern
 
       included do
-        has_one :blocked_execution, strict_loading: false
+        has_one :blocked_execution
 
         delegate :concurrency_limit, :concurrency_duration, to: :job_class
 
@@ -14,6 +14,10 @@ module SolidQueue
       end
 
       class_methods do
+        def execution_associations
+          super.to_a.append(:blocked_execution)
+        end
+
         def release_all_concurrency_locks(jobs)
           Semaphore.signal_all(jobs.select(&:concurrency_limited?))
         end

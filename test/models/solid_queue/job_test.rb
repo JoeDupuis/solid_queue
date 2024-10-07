@@ -29,7 +29,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
       SolidQueue::Job.enqueue(active_job)
     end
 
-    solid_queue_job = SolidQueue::Job.last
+    solid_queue_job = SolidQueue::Job.with_execution.last
     assert solid_queue_job.ready?
     assert_equal :ready, solid_queue_job.status
     assert_equal solid_queue_job.id, active_job.provider_job_id
@@ -39,7 +39,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
     assert Time.now >= solid_queue_job.scheduled_at
     assert_equal [ 1 ], solid_queue_job.arguments["arguments"]
 
-    execution = SolidQueue::ReadyExecution.last
+    execution = SolidQueue::ReadyExecution.includes(:job).last
     assert_equal solid_queue_job, execution.job
     assert_equal "test", execution.queue_name
     assert_equal 8, execution.priority
@@ -52,7 +52,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
       SolidQueue::Job.enqueue(active_job, scheduled_at: 5.minutes.from_now)
     end
 
-    solid_queue_job = SolidQueue::Job.last
+    solid_queue_job = SolidQueue::Job.with_execution.last
     assert solid_queue_job.scheduled?
     assert_equal :scheduled, solid_queue_job.status
     assert_equal 8, solid_queue_job.priority
@@ -61,7 +61,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
     assert Time.now < solid_queue_job.scheduled_at
     assert_equal [ 1 ], solid_queue_job.arguments["arguments"]
 
-    execution = SolidQueue::ScheduledExecution.last
+    execution = SolidQueue::ScheduledExecution.includes(:job).last
     assert_equal solid_queue_job, execution.job
     assert_equal "test", execution.queue_name
     assert_equal 8, execution.priority
@@ -139,7 +139,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
 
   test "discard ready job" do
     AddToBufferJob.perform_later(1)
-    job = SolidQueue::Job.last
+    job = SolidQueue::Job.with_execution.last
 
     assert_job_counts ready: -1 do
       job.discard
@@ -149,7 +149,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
   test "discard blocked job" do
     NonOverlappingJob.perform_later(@result, name: "ready")
     NonOverlappingJob.perform_later(@result, name: "blocked")
-    ready_job, blocked_job = SolidQueue::Job.last(2)
+    ready_job, blocked_job = SolidQueue::Job.with_execution.last(2)
     semaphore = SolidQueue::Semaphore.last
 
     travel_to 10.minutes.from_now
@@ -163,10 +163,11 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
 
   test "try to discard claimed job" do
     StoreResultJob.perform_later(42, pause: 2.seconds)
-    job = SolidQueue::Job.last
 
     worker = SolidQueue::Worker.new(queues: "background").tap(&:start)
     sleep(0.2)
+    #has to come after the sleep now since we preload the execution at the same time
+    job = SolidQueue::Job.with_execution.last
 
     assert_no_difference -> { SolidQueue::Job.count }, -> { SolidQueue::ClaimedExecution.count } do
       assert_raises SolidQueue::Execution::UndiscardableError do
@@ -179,7 +180,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
 
   test "discard scheduled job" do
     AddToBufferJob.set(wait: 5.minutes).perform_later
-    job = SolidQueue::Job.last
+    job = SolidQueue::Job.with_execution.last
 
     assert_job_counts scheduled: -1 do
       job.discard
@@ -189,7 +190,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
   test "release blocked locks when discarding a ready job" do
     NonOverlappingJob.perform_later(@result, name: "ready")
     NonOverlappingJob.perform_later(@result, name: "blocked")
-    ready_job, blocked_job = SolidQueue::Job.last(2)
+    ready_job, blocked_job = SolidQueue::Job.with_execution.last(2)
     semaphore = SolidQueue::Semaphore.last
 
     assert ready_job.ready?
@@ -269,7 +270,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
   private
     def assert_ready(&block)
       assert_job_counts(ready: 1, &block)
-      assert SolidQueue::Job.last.ready?
+      assert SolidQueue::Job.with_execution.last.ready?
     end
 
     def assert_scheduled(&block)
@@ -278,7 +279,7 @@ class SolidQueue::JobTest < ActiveSupport::TestCase
 
     def assert_blocked(&block)
       assert_job_counts(blocked: 1, &block)
-      assert SolidQueue::Job.last.blocked?
+      assert SolidQueue::Job.with_execution.last.blocked?
     end
 
     def assert_job_counts(ready: 0, scheduled: 0, blocked: 0, &block)
