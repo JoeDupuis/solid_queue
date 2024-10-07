@@ -4,7 +4,9 @@ module JobsTestHelper
   def wait_for_jobs_to_finish_for(timeout = 1.second, except: [])
     wait_while_with_timeout(timeout) do
       skip_active_record_query_cache do
-        SolidQueue::Job.where.not(active_job_id: Array(except).map(&:job_id)).where(finished_at: nil).any?
+        SolidQueue::Job
+          .with_execution
+          .where.not(active_job_id: Array(except).map(&:job_id)).where(finished_at: nil).any?
       end
     end
   end

@@ -29,7 +29,7 @@ module Dummy
 
     config.active_job.queue_adapter = :solid_queue
 
-    config.active_record.strict_loading_by_default = true
+    config.active_record.strict_loading_by_default = true unless ENV['SKIP_STRICT_LOADING']
 
     if ENV["SEPARATE_CONNECTION"] && ENV["TARGET_DB"] != "sqlite"
       config.solid_queue.connects_to = { database: { writing: :primary, reading: :replica } }

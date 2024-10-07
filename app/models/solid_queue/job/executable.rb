@@ -6,17 +6,22 @@ module SolidQueue
       extend ActiveSupport::Concern
 
       included do
-        include ConcurrencyControls, Schedulable, Retryable
+        include ConcurrencyControls, Schedulable, Retryable, Recurrable
 
-        has_one :ready_execution, strict_loading: false
-        has_one :claimed_execution, strict_loading: false
+        has_one :ready_execution
+        has_one :claimed_execution
 
         after_create :prepare_for_execution
 
         scope :finished, -> { where.not(finished_at: nil) }
+        scope :with_execution, -> { includes(execution_associations) }
       end
 
       class_methods do
+        def execution_associations
+          [:ready_execution, :claimed_execution]
+        end
+
         def prepare_all_for_execution(jobs)
           due, not_yet_due = jobs.partition(&:due?)
           dispatch_all(due) + schedule_all(not_yet_due)
@@ -97,6 +102,14 @@ module SolidQueue
 
       def discard
         execution&.discard
+      end
+
+      %w[ ready claimed failed ].each do |status|
+        define_method("#{status}_execution") do
+          return instance_variable_get("@#{status}_execution") ||
+            "SolidQueue::#{status.capitalize}Execution".safe_constantize.includes(:job).find_by(job_id: id)
+            .tap {|execution| instance_variable_set("@#{status}_execution", execution) 	}
+        end
       end
 
       private

@@ -78,7 +78,7 @@ class SolidQueue::ClaimedExecutionTest < ActiveSupport::TestCase
         SolidQueue::ReadyExecution.claim(job.queue_name, 1, process.id)
       end
 
-      SolidQueue::ClaimedExecution.last
+      SolidQueue::ClaimedExecution.includes(:process, :job).last
     end
 
     def with_error_subscriber(subscriber)

@@ -4,7 +4,7 @@ module SolidQueue
   class Job < Record
     class EnqueueError < StandardError; end
 
-    include Executable, Clearable, Recurrable
+    include Executable, Clearable
 
     serialize :arguments, coder: JSON
 

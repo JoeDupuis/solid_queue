@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SolidQueue::ClaimedExecution < SolidQueue::Execution
-  belongs_to :process, strict_loading: false
+  belongs_to :process
 
   scope :orphaned, -> { where.missing(:process) }
 
@@ -17,7 +17,7 @@ class SolidQueue::ClaimedExecution < SolidQueue::Execution
 
       SolidQueue.instrument(:claim, process_id: process_id, job_ids: job_ids) do |payload|
         insert_all!(job_data)
-        where(job_id: job_ids, process_id: process_id).load.tap do |claimed|
+        where(job_id: job_ids, process_id: process_id).includes(:job).load.tap do |claimed|
           block.call(claimed)
 
           payload[:size] = claimed.size
@@ -99,7 +99,10 @@ class SolidQueue::ClaimedExecution < SolidQueue::Execution
 
     def finished
       transaction do
-        job.finished!
+        SolidQueue::Job
+          .with_execution
+          .find(job_id)
+          .finished!
         destroy!
       end
     end

@@ -6,7 +6,17 @@ module SolidQueue
       extend ActiveSupport::Concern
 
       included do
-        has_one :recurring_execution, strict_loading: false, dependent: :destroy
+        has_one :recurring_execution, dependent: :destroy
+      end
+
+      class_methods do
+        def execution_associations
+          super.to_a.append(:recurring_execution)
+        end
+      end
+
+      def recurring_execution
+        @recurring_execution ||= RecurringExecution.find_by(job_id: id)
       end
     end
   end

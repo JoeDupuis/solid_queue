@@ -18,7 +18,7 @@ module ProcessesTestHelper
   end
 
   def assert_registered_processes(kind:, count: 1, supervisor_pid: nil, **attributes)
-    processes = skip_active_record_query_cache { SolidQueue::Process.where(kind: kind).to_a }
+    processes = skip_active_record_query_cache { SolidQueue::Process.includes(:supervisor).where(kind: kind).to_a }
     assert_equal count, processes.count
 
     if supervisor_pid
@@ -46,7 +46,7 @@ module ProcessesTestHelper
 
   def find_processes_registered_as(kind)
     skip_active_record_query_cache do
-      SolidQueue::Process.where(kind: kind)
+      SolidQueue::Process.includes(:supervisor).where(kind: kind)
     end
   end
 

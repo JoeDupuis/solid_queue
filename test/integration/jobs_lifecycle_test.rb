@@ -73,7 +73,7 @@ class JobsLifecycleTest < ActiveSupport::TestCase
     assert_equal 2, SolidQueue::Job.finished.count # 2 retries of A
     assert_equal 1, SolidQueue::FailedExecution.count
 
-    failed_execution = SolidQueue::FailedExecution.last
+    failed_execution = SolidQueue::FailedExecution.includes(:job).last
     failed_execution.job.retry
 
     wait_for_jobs_to_finish_for(3.seconds)

@@ -10,7 +10,7 @@ module SolidQueue
 
     scope :ordered, -> { order(priority: :asc, job_id: :asc) }
 
-    belongs_to :job, strict_loading: false
+    belongs_to :job
 
     class << self
       def type
@@ -77,7 +77,10 @@ module SolidQueue
     def discard
       SolidQueue.instrument(:discard, job_id: job_id, status: type) do
         with_lock do
-          job.destroy
+          SolidQueue::Job
+            .with_execution
+            .find(job_id)
+            .destroy
           destroy
         end
       end
