@@ -14,6 +14,10 @@ module SolidQueue
           super.to_a.append(:recurring_execution)
         end
       end
+
+      def recurring_execution
+        @recurring_execution ||= RecurringExecution.find_by(job_id: id)
+      end
     end
   end
 end

@@ -39,6 +39,10 @@ module SolidQueue
         scheduled_execution.present?
       end
 
+      def scheduled_execution
+        @scheduled_execution ||= ScheduledExecution.find_by(job_id: id)
+      end
+
       private
         def schedule
           ScheduledExecution.create_or_find_by!(job_id: id)

@@ -17,6 +17,10 @@ module SolidQueue
         end
       end
 
+      def failed_execution
+        @failed_execution ||= SolidQueue::FailedExecution.find_by(job_id: id)
+      end
+
       def retry
         failed_execution&.retry
       end

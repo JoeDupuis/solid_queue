@@ -104,6 +104,14 @@ module SolidQueue
         execution&.discard
       end
 
+      %w[ ready claimed failed ].each do |status|
+        define_method("#{status}_execution") do
+          return instance_variable_get("@#{status}_execution") ||
+            "SolidQueue::#{status.capitalize}Execution".safe_constantize.includes(:job).find_by(job_id: id)
+            .tap {|execution| instance_variable_set("@#{status}_execution", execution) 	}
+        end
+      end
+
       private
         def ready
           ReadyExecution.create_or_find_by!(job_id: id)

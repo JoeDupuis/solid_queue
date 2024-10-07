@@ -37,6 +37,10 @@ module SolidQueue
         blocked_execution.present?
       end
 
+      def blocked_execution
+        @blocked_execution ||= BlockedExecution.find_by(job_id: id)
+      end
+
       private
         def acquire_concurrency_lock
           return true unless concurrency_limited?
